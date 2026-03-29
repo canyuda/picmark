@@ -186,11 +186,20 @@ public class PicMarkApp extends Application {
         openButton.setStyle(getButtonStyle("#2196F3"));
         openButton.setOnAction(e -> openImage());
         
-        // Rectangle tool button
-        rectToolButton = new ToggleButton("矩形工具");
+        // Annotation mode button
+        rectToolButton = new ToggleButton("标注模式: 关");
         rectToolButton.setStyle(getToggleButtonStyle());
         rectToolButton.setOnAction(e -> {
             isRectangleToolActive = rectToolButton.isSelected();
+            if (isRectangleToolActive) {
+                // 开启标注模式时，取消当前选中的矩形
+                selectAnnotation(null);
+                rectToolButton.setText("标注模式: 开");
+                rectToolButton.setStyle(getToggleButtonStyleActive());
+            } else {
+                rectToolButton.setText("标注模式: 关");
+                rectToolButton.setStyle(getToggleButtonStyle());
+            }
             updateCursor();
         });
         
@@ -856,6 +865,11 @@ public class PicMarkApp extends Application {
     
     private String getToggleButtonStyle() {
         return "-fx-background-color: #555555; -fx-text-fill: white; -fx-font-weight: bold; " +
+               "-fx-padding: 8 16; -fx-background-radius: 4;";
+    }
+    
+    private String getToggleButtonStyleActive() {
+        return "-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; " +
                "-fx-padding: 8 16; -fx-background-radius: 4;";
     }
     
