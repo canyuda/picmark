@@ -200,6 +200,8 @@ public class PicMarkApp extends Application {
                 rectToolButton.setText("标注模式: 关");
                 rectToolButton.setStyle(getToggleButtonStyle());
             }
+            // 更新所有矩形的颜色以反映模式变化
+            updateAllRectStyles();
             updateCursor();
         });
         
@@ -425,13 +427,31 @@ public class PicMarkApp extends Application {
     
     private void updateRectStyle(Rectangle rect, boolean selected) {
         if (selected) {
+            // 选中状态：红色边框，蓝色填充
             rect.setFill(Color.rgb(33, 150, 243, 0.3));
             rect.setStroke(Color.RED);
             rect.setStrokeWidth(3);
         } else {
-            rect.setFill(Color.rgb(33, 150, 243, 0.1));
-            rect.setStroke(Color.BLUE);
+            // 根据模式设置不同颜色
+            if (isRectangleToolActive) {
+                // 标注模式开启：绿色（表示可以创建新标注）
+                rect.setFill(Color.rgb(76, 175, 80, 0.1));
+                rect.setStroke(Color.rgb(76, 175, 80));
+            } else {
+                // 标注模式关闭：蓝色（表示可以选中和拖拽）
+                rect.setFill(Color.rgb(33, 150, 243, 0.1));
+                rect.setStroke(Color.BLUE);
+            }
             rect.setStrokeWidth(2);
+        }
+    }
+    
+    private void updateAllRectStyles() {
+        for (RectangleAnnotation annotation : annotations) {
+            Rectangle rect = annotation.getVisualRect();
+            if (rect != null) {
+                updateRectStyle(rect, annotation.isSelected());
+            }
         }
     }
     
