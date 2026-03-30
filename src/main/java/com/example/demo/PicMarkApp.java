@@ -2,7 +2,6 @@ package com.example.demo;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
-import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Scene;
@@ -46,7 +45,6 @@ public class PicMarkApp extends Application {
     // Viewport state
     private double viewportX = 0;
     private double viewportY = 0;
-    private double scale = 1.0;
     
     // Dragging state
     private boolean isDragging = false;
@@ -241,24 +239,38 @@ public class PicMarkApp extends Application {
     private void createCanvasArea() {
         canvasContainer = new Pane();
         canvasContainer.setStyle("-fx-background-color: #ffffff;");
-        
+
         // Image canvas
         imageCanvas = new Canvas();
         gc = imageCanvas.getGraphicsContext2D();
-        
+
         // Overlay pane for interactive rectangles
         overlayPane = new Pane();
         overlayPane.setMouseTransparent(false);
-        
+
         StackPane stackPane = new StackPane();
         stackPane.setAlignment(Pos.CENTER);
         stackPane.getChildren().addAll(imageCanvas, overlayPane);
-        
+
         canvasContainer.getChildren().add(stackPane);
-        
+
         // Setup mouse handlers
         setupCanvasMouseHandlers();
-        
+
+        // Setup resize listeners (只添加一次，避免内存泄漏)
+        canvasContainer.widthProperty().addListener((obs, oldVal, newVal) -> {
+            if (imageCanvas != null) {
+                imageCanvas.setWidth(newVal.doubleValue());
+                render();
+            }
+        });
+        canvasContainer.heightProperty().addListener((obs, oldVal, newVal) -> {
+            if (imageCanvas != null) {
+                imageCanvas.setHeight(newVal.doubleValue());
+                render();
+            }
+        });
+
         root.setCenter(canvasContainer);
     }
     
@@ -632,20 +644,10 @@ public class PicMarkApp extends Application {
             prefs.put(PREF_LAST_IMAGE_PATH, file.getAbsolutePath());
             
             render();
-            
+
             // 检查同级目录下是否存在同名 Excel 文件，如果有则自动加载
             autoLoadAnnotations(file);
-            
-            // Setup resize listener
-            canvasContainer.widthProperty().addListener((obs, oldVal, newVal) -> {
-                imageCanvas.setWidth(newVal.doubleValue());
-                render();
-            });
-            canvasContainer.heightProperty().addListener((obs, oldVal, newVal) -> {
-                imageCanvas.setHeight(newVal.doubleValue());
-                render();
-            });
-            
+
         } catch (Exception e) {
             showError("加载图片失败: " + e.getMessage());
         }

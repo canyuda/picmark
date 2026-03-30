@@ -8,7 +8,7 @@
 
 - 打开并浏览 PNG、JPG、JPEG、GIF、BMP 格式图片
 - 使用矩形工具在图片上框选区域并记录坐标
-- 坐标系以图片左下角为原点 (0,0)，X轴向右为正，Y轴向上为正
+- 坐标系使用 JavaFX 视觉坐标系统，左上角为原点 (0,0)，X轴向右为正，Y轴向下为正
 - 支持为每个标注添加文字描述（metadata）
 - 将标注数据导出为 Excel 文件，或从 Excel 导入标注
 
@@ -48,12 +48,12 @@ picmark/
 - 负责构建整个 GUI 界面（工具栏、画布区域、状态栏）
 - 处理用户交互：图片拖拽、矩形绘制、标注删除
 - 协调其他组件：调用 `ExcelHandler` 进行文件操作，使用 `AnnotationDialog` 收集用户输入
-- **坐标系统转换**：JavaFX 使用左上角为原点，而业务逻辑使用左下角为原点，需要双向转换
+- **坐标系统**：统一使用 JavaFX 视觉坐标系统，左上角为原点 (0,0)，Y 轴向下
 
 ### 2. RectangleAnnotation.java（数据模型）
-- 存储矩形的 4 个顶点坐标（按顺时针：左下→右下→右上→左上）
-- 坐标存储使用**左下角为原点**的坐标系
-- 提供 `fromVisualBounds()` 和 `getVisualBounds()` 方法进行坐标系转换
+- 存储矩形的 4 个顶点坐标（按顺时针：左上→右上→右下→左下）
+- 坐标存储使用**JavaFX 视觉坐标系统**，左上角为原点，Y 轴向下
+- 提供 `fromVisualBounds()` 和 `getVisualBounds()` 方法用于创建和获取矩形边界
 - 包含 metadata 字段存储标注描述
 - 持有 `Rectangle` 视觉对象的引用（transient，不序列化）
 
@@ -63,9 +63,9 @@ picmark/
 - 返回用户操作结果（保存/取消）
 
 ### 4. ExcelHandler.java（文件处理）
-- `saveAnnotations()`: 将标注列表导出为 Excel 文件，文件名格式：`图片名称.xlsx`（与图片同名）
+- `saveAnnotations()`: 将标注列表导出为 Excel 文件
 - `loadAnnotations()`: 从 Excel 文件加载标注列表
-- Excel 格式：x1, y1, x2, y2, x3, y3, x4, y4, metadata
+- Excel 格式：`(x1,y1)`, `(x2,y2)`, `(x3,y3)`, `(x4,y4)`, `metadata`（括号包裹的坐标字符串）
 
 ### 5. Launcher.java（启动器）
 - 用于创建包含所有依赖的 fat JAR
@@ -131,9 +131,9 @@ mvn test
 ## 代码规范
 
 ### 坐标系约定
-- **内部存储**：使用左下角为原点 (0,0)，Y轴向上
-- **视觉显示**：JavaFX 使用左上角为原点，需要转换
-- 转换方法已封装在 `RectangleAnnotation` 类中
+- **内部存储**：统一使用 JavaFX 视觉坐标系统，左上角为原点 (0,0)，Y 轴向下
+- **视觉显示**：与存储坐标一致，无需转换
+- `RectangleAnnotation` 类提供 `fromVisualBounds()` 和 `getVisualBounds()` 方法用于创建和获取矩形边界
 
 ### 命名规范
 - 类名：PascalCase（如 `RectangleAnnotation`）
@@ -149,23 +149,22 @@ mvn test
 ## 关键实现细节
 
 ### 坐标系转换
+由于统一使用 JavaFX 视觉坐标系统，无需坐标系转换：
 ```java
-// 从视觉坐标（左上角原点）转换为存储坐标（左下角原点）
-public static RectangleAnnotation fromVisualBounds(double visualX, double visualY, 
-                                                      double width, double height, 
-                                                      double imageHeight)
+// 从视觉坐标创建标注对象
+public static RectangleAnnotation fromVisualBounds(double visualX, double visualY, double width, double height)
 
-// 从存储坐标转换为视觉坐标
-public double[] getVisualBounds(double imageHeight)
+// 获取标注的视觉边界（x, y, width, height）
+public double[] getVisualBounds()
 ```
 
 ### 标注删除
-- 右键点击标注区域即可删除
-- 通过遍历 `annotations` 列表，检测鼠标位置是否在矩形内
+- 右键点击选中的标注可弹出删除确认对话框
+- 通过 `selectedAnnotation` 跟踪当前选中项
 
 ### 文件命名
-导出 Excel 文件时自动命名：`{imageName}_{timestamp}.xlsx`
-时间戳格式：`yyyyMMdd_HHmmss`
+- 导出 Excel 文件时自动命名：`{图片名称}.xlsx`（与图片同名）
+- 自动保存功能会自动创建或更新与图片同名的 Excel 文件
 
 ## 依赖说明
 
@@ -181,10 +180,11 @@ public double[] getVisualBounds(double imageHeight)
 
 1. **Java 版本**：项目需要 Java 17 或更高版本
 2. **JavaFX 模块**：使用 Maven 插件处理 JavaFX 依赖
-3. **Fat JAR**：使用 maven-shade-plugin 打包所有依赖
+3. **Fat JAR**：使用 maven-shade-plugin 打包所有依赖，主类为 `Launcher`
 4. **资源目录**：`src/main/resources` 当前为空，如需添加资源文件（如样式表、图标），可直接放入
 5. **多显示器支持**：应用会自动检测鼠标位置，在鼠标当前所在的显示器上打开窗口
 6. **macOS 兼容性**：macOS 用户可能需要添加 `-Dprism.order=sw` JVM 参数
+7. **已知问题**：`scale` 字段当前未使用（固定为 1.0），`loadImage` 方法中存在 resize 监听器重复添加的潜在内存泄漏风险
 
 ## 扩展建议
 

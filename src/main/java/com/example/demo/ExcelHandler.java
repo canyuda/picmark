@@ -4,8 +4,6 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,10 +11,7 @@ import java.util.List;
  * Handles Excel file operations for importing and exporting annotations.
  */
 public class ExcelHandler {
-    
-    private static final DateTimeFormatter DATE_FORMATTER = 
-            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
-    
+
     /**
      * Save annotations to Excel file.
      * Format: (x1,y1), (x2,y2), (x3,y3), (x4,y4), metadata
